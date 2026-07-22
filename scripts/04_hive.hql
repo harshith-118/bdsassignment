@@ -1,8 +1,5 @@
--- M3 — Hive DDL, views, and top-10 export for security analytics.
--- Compatible with Hive 1.2+/2.x/3.x (no window functions required).
--- Usage:
---   source config.env
---   hive -f scripts/04_hive.hql
+-- M3 — Hive DDL + analysis (OSHA-friendly, fewer MR stages).
+-- Usage: hive -f scripts/04_hive.hql
 
 CREATE DATABASE IF NOT EXISTS security_analytics;
 USE security_analytics;
@@ -69,44 +66,29 @@ GROUP BY f.ip;
 SHOW TABLES;
 DESCRIBE ext_ip_hour_agg;
 
-SELECT * FROM v_flagged_week_summary ORDER BY total_violations DESC;
+SELECT * FROM v_flagged_week_summary ORDER BY total_violations DESC LIMIT 20;
 
 SELECT ip, endpoint_diversity
 FROM v_flagged_endpoints
-ORDER BY endpoint_diversity DESC;
+ORDER BY endpoint_diversity DESC
+LIMIT 20;
 
--- Peak hour per IP via join on max error_count (no window fn)
+-- Simple top-10 table (no window functions / complex joins)
 DROP TABLE IF EXISTS tmp_top10;
 CREATE TABLE tmp_top10 AS
 SELECT
   w.ip,
-  p.hour_bucket AS peak_hour,
   w.peak_errors,
   w.total_violations,
-  COALESCE(e.endpoint_diversity, CAST(0 AS BIGINT)) AS endpoint_diversity,
+  COALESCE(e.endpoint_diversity, 0) AS endpoint_diversity,
   CASE
     WHEN w.peak_errors >= 100 OR w.total_violations >= 200 THEN 'High'
     ELSE 'Medium'
   END AS threat_level,
   w.reason
 FROM v_flagged_week_summary w
-LEFT JOIN v_flagged_ips p
-  ON w.ip = p.ip AND w.peak_errors = p.error_count
 LEFT JOIN v_flagged_endpoints e
   ON w.ip = e.ip
-ORDER BY w.total_violations DESC
 LIMIT 10;
 
-SELECT * FROM tmp_top10;
-
-INSERT OVERWRITE DIRECTORY '/data/security/export/top10_suspicious'
-ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-SELECT
-  ip,
-  peak_hour,
-  peak_errors,
-  total_violations,
-  endpoint_diversity,
-  threat_level,
-  reason
-FROM tmp_top10;
+SELECT * FROM tmp_top10 ORDER BY total_violations DESC;
