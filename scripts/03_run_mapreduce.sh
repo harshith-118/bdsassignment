@@ -36,7 +36,9 @@ hdfs dfs -rm -r -f "$HDFS_AGG" || true
 echo "==> Running MapReduce (threshold=$THRESHOLD)"
 echo "    input : $HDFS_PARSED"
 echo "    output: $HDFS_AGG"
-hadoop jar "$MR_JAR" "$MR_MAIN" "$HDFS_PARSED" "$HDFS_AGG" "$THRESHOLD"
+# Do NOT pass main class again — it is already in the JAR manifest.
+# Passing it makes some Hadoop versions treat it as args[0] and breaks threshold parsing.
+hadoop jar "$MR_JAR" "$HDFS_PARSED" "$HDFS_AGG" "$THRESHOLD"
 
 echo "==> Sample suspicious rows (screenshot):"
 hdfs dfs -cat "${HDFS_AGG}/part-*" | awk -F'\t' '$6==1 {print}' | head -50

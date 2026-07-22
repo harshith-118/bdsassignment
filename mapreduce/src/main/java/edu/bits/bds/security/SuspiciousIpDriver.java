@@ -17,6 +17,10 @@ import org.apache.hadoop.util.ToolRunner;
  *
  * Usage:
  *   hadoop jar suspicious-ip-detection-1.0.jar \
+ *     <parsed_input> <agg_output> [threshold]
+ *
+ *   # or explicitly:
+ *   hadoop jar suspicious-ip-detection-1.0.jar \
  *     edu.bits.bds.security.SuspiciousIpDriver \
  *     <parsed_input> <agg_output> [threshold]
  */
@@ -24,6 +28,9 @@ public class SuspiciousIpDriver extends Configured implements Tool {
 
   @Override
   public int run(String[] args) throws Exception {
+    // Some Hadoop invocations pass the main class name as args[0].
+    args = normalizeArgs(args);
+
     if (args.length < 2) {
       System.err.println("Usage: SuspiciousIpDriver <parsed_input> <agg_output> [threshold]");
       return 1;
@@ -32,8 +39,15 @@ public class SuspiciousIpDriver extends Configured implements Tool {
     String output = args[1];
     int threshold = 50;
     if (args.length >= 3) {
-      threshold = Integer.parseInt(args[2]);
+      try {
+        threshold = Integer.parseInt(args[2]);
+      } catch (NumberFormatException e) {
+        System.err.println("Invalid threshold '" + args[2] + "'; expected an integer. Using 50.");
+        threshold = 50;
+      }
     }
+
+    System.out.println("MR input=" + input + " output=" + output + " threshold=" + threshold);
 
     Configuration conf = getConf();
     conf.setInt(ErrorCountReducer.CONF_THRESHOLD, threshold);
@@ -57,6 +71,19 @@ public class SuspiciousIpDriver extends Configured implements Tool {
 
     boolean ok = job.waitForCompletion(true);
     return ok ? 0 : 1;
+  }
+
+  /** Drop leading main-class token if present so paths/threshold line up. */
+  static String[] normalizeArgs(String[] args) {
+    if (args.length >= 3 && args[0] != null
+        && args[0].contains("SuspiciousIpDriver")
+        && args[1].startsWith("/")
+        && args[2].startsWith("/")) {
+      String[] fixed = new String[args.length - 1];
+      System.arraycopy(args, 1, fixed, 0, fixed.length);
+      return fixed;
+    }
+    return args;
   }
 
   public static void main(String[] args) throws Exception {
