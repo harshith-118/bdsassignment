@@ -1,0 +1,26 @@
+{
+  "203.0.113.10": {
+    "role": "brute_force",
+    "threat_level": "High",
+    "reason": "HIGH_ERROR_RATE",
+    "note": "Many 401/403 against /login and /admin in a single hour"
+  },
+  "198.51.100.66": {
+    "role": "scanner",
+    "threat_level": "High",
+    "reason": "HIGH_ERROR_RATE",
+    "note": "Wide 404 scanning across many endpoints in a single hour"
+  },
+  "203.0.113.77": {
+    "role": "server_error_burst",
+    "threat_level": "Medium",
+    "reason": "HIGH_ERROR_RATE",
+    "note": "Burst of 500/502 responses in a single hour"
+  },
+  "198.51.100.20": {
+    "role": "mixed_abuse",
+    "threat_level": "High",
+    "reason": "HIGH_ERROR_RATE",
+    "note": "Mixed 4xx/5xx abuse across two busy hours"
+  }
+}

@@ -1,0 +1,8 @@
+# Build artifacts
+mapreduce/target/
+report/hbase_puts.tmp
+report/top10_from_hdfs.tsv
+GROUP_13_Code.zip
+**/.DS_Store
+*.class
+# do not ignore data/**/access.log (needed for OSHA)
